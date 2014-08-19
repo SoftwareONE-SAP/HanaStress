@@ -18,7 +18,7 @@ class HanaStress:
         parser.add_option("-p", "--password", help="The password to use for the DB connection")
         parser.add_option("-g", "--generate", help="Generate a schema. Usage: --create {SCHEMA_TYPE}. Can be: ")
         parser.add_option("-t", "--tables", help="Used with '--generate'. The amount of tables to create. Default: 50", default=50)
-        parser.add_option("-s", "--rowstorage", help="Used with '--generate', Will set table type to Column store instead of Row Store", action="store_true")
+        parser.add_option("-s", "--rowstorage", help="Used with '--generate', Will set table type to Row Store instead of Column Store", action="store_true")
         parser.add_option("-r", "--rows", help="Used with '--generate', set the amount of rows for each table. Default: 100", default=100)
         parser.add_option("--destroy", help="This will DESTROY all the schemas owned by the given user (expect their default schema). BE CAREFUL!", action="store_true")
 
@@ -51,7 +51,7 @@ class HanaStress:
         if options.generate:
             store_type = "row"
 
-            if options.rowstorage:
+            if not options.rowstorage:
                 store_type = "column"
 
             self.generator = generators.generator.Generator(options, int(options.tables), store_type, int(options.rows))
