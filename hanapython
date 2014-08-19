@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Discover the install path for python
+
+INSTALLPATH=$(ls -d /usr/sap/hdbclient/ /usr/sap/???/hdbclient/ /hana/shared/???/hdbclient/ /sapmnt/shared/???/hdbclient/ /sapmnt/???/hdbclient/ /sapmnt/hdbclient/ 2>/dev/null|head -1)
+UALIB=/opt/monitiq-universal$MONITIQPATH/lib/
+export PYTHONPATH=${INSTALLPATH}:${INSTALLPATH}/hdbcli
+${INSTALLPATH}Python/bin/python ${*}
