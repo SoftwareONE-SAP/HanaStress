@@ -20,6 +20,7 @@ class HanaStress:
         parser.add_option("-t", "--tables", help="Used with '--generate'. The amount of tables to create. Default: 50", default=50)
         parser.add_option("-s", "--rowstorage", help="Used with '--generate', Will set table type to Row Store instead of Column Store", action="store_true")
         parser.add_option("-r", "--rows", help="Used with '--generate', set the amount of rows for each table. Default: 100", default=100)
+        parser.add_option("-k", "--threads", help="The amount of threads to use", default=10)
         parser.add_option("--destroy", help="This will DESTROY all the schemas owned by the given user (expect their default schema). BE CAREFUL!", action="store_true")
 
     def getCommand(self):
@@ -35,9 +36,12 @@ class HanaStress:
         # Should be output verbose messages
         self.printUtil = util.printUtil.PrintUtil(options.verbose)
 
-        # Conver the username to upper case
+        # Convert the username to upper case
         if options.user:
             options.user = options.user.upper()
+
+        if options.threads:
+            options.threads = int(options.threads)
 
         # Make sure we never run as system
         if options.user == "SYSTEM":

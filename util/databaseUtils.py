@@ -35,7 +35,6 @@ class DatabaseUtils:
         try:
             #Create the database connetion to HANA
             self.connection = dbapi.connect(hostname, int('3' + instance + '15'), user, password)
-            self.connection.setautocommit(False)
 
             #get a cursor
             self.cursor = self.connection.cursor()
@@ -50,7 +49,6 @@ class DatabaseUtils:
             print '"' + e[1] + '"'
             sys.exit(1)
 
-        self.printUtil.debug("CONNECTION", "Successfully connected and testing DB connection")
         return True
 
     def testConnection(self):
@@ -64,7 +62,7 @@ class DatabaseUtils:
         # be nice and close the connection
         self.connection.close()
 
-        self.printUtil.debug("CONNECTION", "disconnected")
+        # self.printUtil.debug("CONNECTION", "disconnected")
         return True
 
     def createSchema(self, schema_name, user):
@@ -100,6 +98,28 @@ class DatabaseUtils:
             
         return True
 
+    def addForiegnKey(self, schema_name, table_name1, table_name2, keyname, column):
+        query = self.queries.addForiegnKey(schema_name, table_name1, table_name2, keyname, column)
+
+        # Run the query
+        if not self.query(query):
+            self.printUtil.err("ERROR", "UNABLE TO CREATE CONSTRAINT BETWEEN '" + schema_name + "'.'" + table_name1 + "' AND '" + schema_name + "'.'" + table_name2 + "'")
+            sys.exit(1)
+            
+        return True
+
+
+    def createHierarchyTable(self, schema_name, table_name, store_type):
+        # Get the query string to create the table with
+        query = self.queries.createHierarchyTable(schema_name, table_name, store_type)
+
+        # Run the query
+        if not self.query(query):
+            self.printUtil.err("ERROR", "UNABLE TO CREATE TABLE '" + schema_name + "'.'" + table_name + "'")
+            sys.exit(1)
+            
+        return True
+
     def createMasterTable(self, schema_name, table_name, store_type):
         # Get the query string to create the table with
         query = self.queries.createMasterTable(schema_name, table_name, store_type)
@@ -122,46 +142,28 @@ class DatabaseUtils:
             
         return True
 
-    """
-    INSERT INTO "MY_SCHEMA"."MY_TABLE"
-    (
-        SELECT TOP 1000
-            TO_NVARCHAR(RAND())
-            TO_NVARCHAR(RAND())
-            TO_NVARCHAR(RAND())
-            TO_NVARCHAR(RAND())
-            TO_NVARCHAR(RAND())
-        FROM
-            OBJECTS
-        CROSS JOIN
-            OBJECTS
-    )
-    """
+    def createSequence(self, schema_name, name):
+        query = 'CREATE SEQUENCE "' + schema_name + '"."' + name + '" START WITH 1'
 
-    def insertRandomData(self, schema_name, table_name, columns):
-        query = 'INSERT INTO "' + schema_name + '"."' + table_name + '" ( SELECT TOP 1000 '
+        # Run the query
+        if not self.query(query):
+            self.printUtil.err("ERROR", "UNABLE TO CREATE SEQUENCE '" + name + "'")
+            sys.exit(1)
+            
+        return True
 
-        # Get some random data for each column
-        for col in columns:
-            if col == "VARCHAR":
-                query += "CAST(RAND() AS VARCHAR), "
+    def dropSequence(self, schema_name, name):
+        query = 'DROP SEQUENCE "' + schema_name + '"."' + name + '"'
 
-            elif col == "INT":
-                query += "CAST(RAND() * 10000 AS INTEGER), "
+        # Run the query
+        if not self.query(query):
+            self.printUtil.err("ERROR", "UNABLE TO DROP SEQUENCE '" + name + "'")
+            sys.exit(1)
+            
+        return True
 
-            elif col == "DATE":
-                query += "NOW(), "
-
-            elif col == "DECIMAL":
-                query += "RAND(), "
-            else:
-                query += "'" + str(col) + "', "
-
-        # Remove last comma
-        query = query[:-2]
-
-        # Close insert
-        query += " FROM OBJECTS CROSS JOIN OBJECTS )"
+    def insertRandomData(self, schema_name, table_name, columns, amount):
+        query = self.queries.insertRandomDataBulk(schema_name, table_name, columns, amount)
         
         if not self.query(query):
             self.printUtil.err("ERROR", "ERROR ADDING RANDOM DATA TO TABLE: '" + table_name + "'")

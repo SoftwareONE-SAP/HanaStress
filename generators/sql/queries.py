@@ -9,6 +9,18 @@ class Queries:
             "TEST_DECIMAL" DECIMAL not null,\
             "TEST_DECIMAL2" DECIMAL not null default 0.00)'
 
+    def createHierarchyTable(self, schema_name, table_name, store_type):
+        return '\
+        create ' + store_type + ' table "' + schema_name + '"."' + table_name + '"(\
+            "TEST_INT1" INTEGER not null default 0,\
+            "TEST_INT2" INTEGER not null default 0,\
+            "TEST_DATE" DATE not null,\
+            "TEST_INT3" INTEGER null default -1,\
+            "TEST_DECIMAL" DECIMAL not null,\
+            "TEST_DECIMAL2" DECIMAL not null default 0.00,\
+            PRIMARY KEY (TEST_INT1)\
+            )'
+
     def dropSchema(self, schema_name):
         return 'DROP SCHEMA "' + schema_name + '" CASCADE'
 
@@ -23,12 +35,18 @@ class Queries:
         WHERE\
             PAGE_SIZECLASS = \'16k-RowStore\''
 
+    def addForiegnKey(self, schema_name, table_name1, table_name2, keyname, column):
+        return 'ALTER TABLE "' + schema_name + '"."' + table_name1 + '"\
+        ADD CONSTRAINT "' + keyname + '" FOREIGN KEY ("' + column + '")\
+        REFERENCES "' + schema_name + '"."' + table_name2 + '" ON DELETE CASCADE'
+
     def createMasterTable(self, schema_name, table_name, store_type):
         return 'create ' + store_type + ' table "' + schema_name + '"."' + table_name + '"(\
             "ID" INTEGER null,\
             "TEST1" INTEGER null,\
-            "TEST2" INTEGER null,\
-            "TEST3" INTEGER null,\
+            TEST_DATE DATE not null,\
+            TEST_DECIMAL DECIMAL not null,\
+            TEST_VARCHAR VARCHAR (1000) not null,\
             PRIMARY KEY (ID)\
         )'
 
@@ -42,3 +60,30 @@ class Queries:
             FOREIGN KEY (MASTER_ID) REFERENCES "' + schema_name + '"."' + master_table + '",\
             PRIMARY KEY (ID)\
         )'
+
+    def insertRandomDataBulk(self, schema_name, table_name, columns, amount):
+        query = 'INSERT INTO "' + schema_name + '"."' + table_name + '" ( SELECT TOP ' + str(amount) + ' '
+
+        # Get some random data for each column
+        for col in columns:
+            if col == "VARCHAR":
+                query += "CAST(RAND() AS VARCHAR), "
+
+            elif col == "INT":
+                query += "CAST(RAND() * 10000 AS INTEGER), "
+
+            elif col == "DATE":
+                query += "NOW(), "
+
+            elif col == "DECIMAL":
+                query += "RAND(), "
+            else:
+                query += str(col) + ", "
+
+        # Remove last comma
+        query = query[:-2]
+
+        # Close insert
+        query += " FROM OBJECTS CROSS JOIN OBJECTS )"
+
+        return query
