@@ -70,7 +70,6 @@ class Generator:
         while self.threadsDone < self.tables:
             if count < self.tables and self.activeThreads < self.options.threads:
                 self.activeThreads += 1
-                # "(SELECT "' + self.schema_name + '"."TEST_NEXTID_' + str(count) + '".NEXTVAL FROM DUMMY)"
                 thread.start_new_thread(self.addAnarchyRows, ("thread-" + str(count), self.schema_name, tables[count], ['"' + self.schema_name + '"."TEST_NEXTID_' + str(count) + '".NEXTVAL', "INT", "DATE", "INT", "DECIMAL", "DECIMAL"], self.rows))
                 count += 1
             else:
@@ -86,50 +85,43 @@ class Generator:
 
 
     def generateRelationalDatabase(self):
-        self.threadsDone = 0
-        self.activeThreads = 0
-
         # An Array of all the tables we have made
         tables = []
 
-        master_table = "RELATIONSHIP_MASTER"
-        self.createMasterTable(master_table)
+        # Start creating tables
+        for i in range(0, self.tables):
+            table_name = "RELATIONAL_" + str(i)
+            tables += [table_name]
 
-        count = 0    
-        while self.threadsDone < self.tables:
-            if self.activeThreads < self.options.threads:
-                count += 1
-                self.activeThreads += 1
-                # Create a random name for the table (and assume it is unique)
-                table_name = "RELATIONAL_" + self.miscUtils.getRandomString(16)
+            # Create table
+            self.printUtil.debug("structure", 'Creating table: "' + self.schema_name + '"."' + table_name + '"')
+            self.dbutil.createHierarchyTable(self.schema_name, table_name, self.store_type)
 
-                tables += [table_name]
-                thread.start_new_thread(self.createRelationalTable, ("thread-" + str(count), self.schema_name, table_name, self.store_type, master_table))
-            else:
-                time.sleep(0.1)
+            # Create a sequence for our unique key
+            self.printUtil.debug("structure", 'Creating id sequence: "TEST_NEXTID_' + str(i) + '"')
+            self.dbutil.createSequence(self.schema_name, "TEST_NEXTID_" + str(i))
 
+        
         self.threadsDone = 0
         self.activeThreads = 0
+
+        # Start adding data with our sequences
         count = 0
-        while self.threadsDone < self.rows:
-            if self.activeThreads < self.options.threads:
+        while self.threadsDone < self.tables:
+            if count < self.tables and self.activeThreads < self.options.threads:
                 self.activeThreads += 1
-                thread.start_new_thread(self.addRelationalRows, ("thread-" + str(count), self.schema_name, [count, count, "DATE", "DECIMAL", "VARCHAR"], master_table, tables, count))
+                thread.start_new_thread(self.addAnarchyRows, ("thread-" + str(count), self.schema_name, tables[count], ['"' + self.schema_name + '"."TEST_NEXTID_' + str(count) + '".NEXTVAL', "INT", "DATE", "INT", "DECIMAL", "DECIMAL"], self.rows))
                 count += 1
             else:
                 time.sleep(0.1)
 
-    def createRelationalTable(self, threadname, schema_name, table_name, store_type, master_table):
-        insertDbutil = self.miscUtils.getDBConnection(self.options)
+        for i in range(0, self.tables):
+            self.printUtil.debug("structure", 'Dropping id sequence: "TEST_NEXTID_' + str(i) + '"')
+            self.dbutil.dropSequence(self.schema_name, "TEST_NEXTID_" + str(i))
 
-        # Create relational table
-        insertDbutil.createRelationalTable(schema_name, table_name, store_type, master_table)
-        self.printUtil.debug(threadname, "Created: '" + self.schema_name + "'.'" + table_name + "'")
-
-        insertDbutil.disconnect()
-
-        self.activeThreads -= 1
-        self.threadsDone += 1
+        for i in range(0, self.tables - 1):
+            self.printUtil.debug("structure", 'Building constraint for "' + self.schema_name + '"."' + tables[i + 1] + '" REFRENCES "' + self.schema_name + '"."' + tables[0] + '"')
+            self.dbutil.addForiegnKey(self.schema_name, tables[i + 1], tables[i], "TEST_RELATIONAL_CONSTRAINT_" + str(i), "TEST_INT1")
 
     def createMasterTable(self, master_table):
         # Make master table for other tables to join onto
@@ -149,7 +141,7 @@ class Generator:
         self.activeThreads = 0
         count = 0
         while self.threadsDone < self.tables:
-            if self.activeThreads < self.options.threads:
+            if count < self.tables and self.activeThreads < self.options.threads:
                 self.activeThreads += 1
                 count += 1
                 # Add dummy data to table

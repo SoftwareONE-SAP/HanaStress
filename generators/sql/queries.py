@@ -50,17 +50,6 @@ class Queries:
             PRIMARY KEY (ID)\
         )'
 
-    def createRelationalTable(self, schema_name, table_name, store_type, master_table):
-        return 'CREATE ' + store_type + ' TABLE "' + schema_name + '"."' + table_name + '" (\
-            ID INT not null default 0,\
-            MASTER_ID INT not null,\
-            TEST_DATE DATE not null,\
-            TEST_DECIMAL DECIMAL not null,\
-            TEST_VARCHAR VARCHAR (1000) not null,\
-            FOREIGN KEY (MASTER_ID) REFERENCES "' + schema_name + '"."' + master_table + '",\
-            PRIMARY KEY (ID)\
-        )'
-
     def insertRandomDataBulk(self, schema_name, table_name, columns, amount):
         query = 'INSERT INTO "' + schema_name + '"."' + table_name + '" ( SELECT TOP ' + str(amount) + ' '
 
